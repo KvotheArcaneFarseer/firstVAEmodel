@@ -1,0 +1,58 @@
+# docker-compose.yml
+# Description: A professional configuration for Docker Compose to build and run
+# our API container with healthchecks, volumes, and environment variables.
+
+# Specifies the version of the Docker Compose file format.
+version: '3.8'
+
+# Defines the services (containers) that make up our application.
+services:
+  # This is the name we give to our main API service.
+  api:
+    # --- Build Configuration ---
+    # This tells Docker Compose how to build the image.
+    build:
+      context: . # Use the current directory as the build context.
+      dockerfile: Dockerfile # Specify the Dockerfile to use.
+    image: vae-anomaly-api:latest # Name the built image.
+    container_name: vae-anomaly-api-container # Name the running container.
+    
+    # --- Runtime Configuration ---
+    # Always restart the container if it stops, unless we manually stop it.
+    restart: unless-stopped
+
+    # --- Environment Variables ---
+    # This is how we pass configuration into our application.
+    # In a real app, these would override the defaults in settings.py.
+    # For now, this is for demonstration.
+    environment:
+      - LOG_LEVEL=INFO
+      - ANOMALY_THRESHOLD=0.15
+
+    # --- Port Mapping ---
+    # Map port 8000 on our local machine to port 8000 inside the container.
+    ports:
+      - "8000:8000"
+
+    # --- Volumes ---
+    # This creates a persistent storage location for our logs.
+    # The 'app_logs' volume is defined at the bottom of this file.
+    volumes:
+      - app_logs:/app/logs
+
+    # --- Healthcheck ---
+    # This tells Docker how to check if our API is healthy.
+    healthcheck:
+      # The command to run inside the container. It uses 'curl' to hit our health endpoint.
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health"]
+      interval: 30s    # How often to run the check.
+      timeout: 10s     # How long to wait for a response.
+      retries: 3       # How many times to retry on failure before marking as unhealthy.
+      start_period: 40s # Grace period for the app to start up before checks begin.
+
+# Defines the named volumes used by our services.
+volumes:
+  app_logs:
+    # This creates a Docker-managed volume named 'app_logs' on the host machine.
+    # It will persist even if the container is removed.
+    name: vae-api-logs
